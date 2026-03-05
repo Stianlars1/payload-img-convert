@@ -2,3 +2,8 @@ node_modules/
 dist/
 *.tsbuildinfo
 .idea/
+
+# Website
+website/.next/
+website/out/
+website/node_modules/

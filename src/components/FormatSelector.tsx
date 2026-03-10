@@ -58,8 +58,8 @@ export const FormatSelectorComponent: React.FC<FormatSelectorProps> = ({
         name={field.name}
         label={field.label ?? 'Convert to Format'}
         value={value ?? defaultFormat}
-        onChange={(option) => {
-          if (option && typeof option === 'object' && 'value' in option) {
+        onChange={(option: { value: unknown } | { value: unknown }[]) => {
+          if (option && !Array.isArray(option) && 'value' in option) {
             setValue(option.value as string)
           }
         }}

@@ -36,6 +36,8 @@ export interface ImageConverterConfig {
   formatOptions?: FormatOptions
   /** Add a format selector dropdown in the upload sidebar. Default: true */
   enableFormatSelector?: boolean
+  /** Add resize dimension inputs in the upload sidebar. Default: true */
+  enableResizeSelector?: boolean
   /** Formats available in the dropdown. Default: all four */
   formats?: ImageFormat[]
   /** Kill switch — disables conversion but keeps the field for schema consistency. Default: false */
@@ -46,4 +48,6 @@ export interface ImageConverterConfig {
   maxHeight?: number
   /** Max file size in bytes. Files exceeding this are skipped (not converted). */
   maxFileSize?: number
+  /** Pixel threshold for oversize image warning in the UI. Default: 2500 */
+  oversizeThreshold?: number
 }

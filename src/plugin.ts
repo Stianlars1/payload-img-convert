@@ -3,6 +3,8 @@ import type { ImageConverterConfig } from './types.js'
 import { DEFAULT_CONFIG } from './defaults.js'
 import { createBeforeOperationHook } from './hooks/beforeOperation.js'
 import { createFormatSelectorField } from './fields/formatSelector.js'
+import { createImageInfoBadgeField } from './fields/imageInfoBadge.js'
+import { createResizeSelectorFields } from './fields/resizeSelector.js'
 
 export const imageConverterPlugin =
   (pluginConfig: ImageConverterConfig): Plugin =>
@@ -27,6 +29,10 @@ export const imageConverterPlugin =
       const fields = [...(collection.fields || [])]
       if (config.enableFormatSelector) {
         fields.push(createFormatSelectorField(pluginConfig))
+      }
+      fields.push(createImageInfoBadgeField())
+      if (config.enableResizeSelector) {
+        fields.push(...createResizeSelectorFields(pluginConfig))
       }
       fields.push({
         name: 'originalFilesize',

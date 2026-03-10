@@ -3,7 +3,10 @@ import type { ImageConverterConfig, ImageFormat } from '../types.js'
 import {
   FORMAT_EXTENSION_MAP,
   FORMAT_MIME_MAP,
+  MIME_FORMAT_MAP,
   FORMAT_SELECTOR_FIELD_NAME,
+  RESIZE_MAX_WIDTH_FIELD_NAME,
+  RESIZE_MAX_HEIGHT_FIELD_NAME,
   DEFAULT_CONFIG,
 } from '../defaults.js'
 
@@ -32,6 +35,10 @@ export function createBeforeOperationHook(
     const data = args?.data ?? (args as Record<string, unknown>)
     const selectedFormat = data?.[FORMAT_SELECTOR_FIELD_NAME] as ImageFormat | undefined
     const targetFormat: ImageFormat = selectedFormat || config.defaultFormat
+
+    // Determine resize dimensions: per-image UI value > global config > no resize
+    const resizeWidth = (data?.[RESIZE_MAX_WIDTH_FIELD_NAME] as number | undefined) ?? config.maxWidth
+    const resizeHeight = (data?.[RESIZE_MAX_HEIGHT_FIELD_NAME] as number | undefined) ?? config.maxHeight
 
     // Get Sharp from Payload's managed instance
     const sharp = req.payload.config?.sharp
@@ -69,22 +76,36 @@ export function createBeforeOperationHook(
         depth: 0,
       })
 
-      // Check if the existing file is already in the target format
+      // Check if any conversion or resize is needed
       const currentMime = existingDoc.mimeType as string | undefined
       const targetMime = FORMAT_MIME_MAP[targetFormat]
-      if (!currentMime || currentMime === targetMime) return
+      const needsFormatChange = currentMime && currentMime !== targetMime
+      const needsResize = resizeWidth || resizeHeight
+      if (!currentMime || (!needsFormatChange && !needsResize)) return
 
       // Fetch the existing file from storage
       const fileUrl = existingDoc.url as string | undefined
       if (!fileUrl) return
 
-      req.payload.logger.info(
-        `payload-img-convert: Re-converting existing image (${currentMime} → ${targetMime})`,
-      )
+      // Determine the actual output format — use current format if only resizing
+      const outputFormat = needsFormatChange ? targetFormat : MIME_FORMAT_MAP[currentMime]
+      if (!outputFormat) return
+      const outputMime = FORMAT_MIME_MAP[outputFormat]
+
+      if (needsFormatChange) {
+        req.payload.logger.info(
+          `payload-img-convert: Re-converting existing image (${currentMime} → ${targetMime})`,
+        )
+      }
+      if (needsResize) {
+        req.payload.logger.info(
+          `payload-img-convert: Resizing existing image (maxWidth: ${resizeWidth ?? 'none'}, maxHeight: ${resizeHeight ?? 'none'})`,
+        )
+      }
 
       // Warn about quality degradation for lossy-to-lossy re-conversion
       const lossyMimes = ['image/jpeg', 'image/webp', 'image/avif']
-      if (lossyMimes.includes(currentMime) && lossyMimes.includes(targetMime)) {
+      if (needsFormatChange && lossyMimes.includes(currentMime) && lossyMimes.includes(targetMime)) {
         req.payload.logger.warn(
           'payload-img-convert: Re-converting between lossy formats will degrade quality. ' +
             'For best results, upload the original file.',
@@ -115,29 +136,29 @@ export function createBeforeOperationHook(
 
         let pipeline = sharp(buffer)
 
-        if (config.maxWidth || config.maxHeight) {
+        if (resizeWidth || resizeHeight) {
           pipeline = pipeline.resize({
-            width: config.maxWidth,
-            height: config.maxHeight,
+            width: resizeWidth,
+            height: resizeHeight,
             fit: 'inside',
             withoutEnlargement: true,
           })
         }
 
         const { data: convertedBuffer, info } = await pipeline
-          .toFormat(targetFormat, outputOptions)
+          .toFormat(outputFormat, outputOptions)
           .toBuffer({ resolveWithObject: true })
 
         // Set req.file — Payload will process this as a new upload
         req.file = {
           data: convertedBuffer,
-          mimetype: FORMAT_MIME_MAP[targetFormat],
-          name: replaceExtension(existingDoc.filename as string, FORMAT_EXTENSION_MAP[targetFormat]),
+          mimetype: outputMime,
+          name: replaceExtension(existingDoc.filename as string, FORMAT_EXTENSION_MAP[outputFormat]),
           size: info.size,
         }
       } catch (err) {
         req.payload.logger.warn(
-          `payload-img-convert: Failed to re-convert to ${targetFormat}. Keeping original. Error: ${err instanceof Error ? err.message : String(err)}`,
+          `payload-img-convert: Failed to process image (format: ${outputFormat}). Keeping original. Error: ${err instanceof Error ? err.message : String(err)}`,
         )
       }
       return
@@ -147,9 +168,16 @@ export function createBeforeOperationHook(
     if (!req.file) return
     if (!req.file.mimetype || !isConvertibleImage(req.file.mimetype)) return
 
-    // Skip if already in target format
+    // Skip if already in target format AND no resize needed
     const targetMime = FORMAT_MIME_MAP[targetFormat]
-    if (req.file.mimetype === targetMime) return
+    const needsFormatChange = req.file.mimetype !== targetMime
+    const needsResize = resizeWidth || resizeHeight
+    if (!needsFormatChange && !needsResize) return
+
+    // Use current format if only resizing (avoid unnecessary re-encoding)
+    const outputFormat = needsFormatChange ? targetFormat : MIME_FORMAT_MAP[req.file.mimetype]
+    if (!outputFormat) return
+    const outputMime = FORMAT_MIME_MAP[outputFormat]
 
     try {
       // Record the original file size before conversion
@@ -158,28 +186,28 @@ export function createBeforeOperationHook(
 
       let pipeline = sharp(req.file.data)
 
-      if (config.maxWidth || config.maxHeight) {
+      if (resizeWidth || resizeHeight) {
         pipeline = pipeline.resize({
-          width: config.maxWidth,
-          height: config.maxHeight,
+          width: resizeWidth,
+          height: resizeHeight,
           fit: 'inside',
           withoutEnlargement: true,
         })
       }
 
       const { data: convertedBuffer, info } = await pipeline
-        .toFormat(targetFormat, outputOptions)
+        .toFormat(outputFormat, outputOptions)
         .toBuffer({ resolveWithObject: true })
 
       // Mutate req.file in place — req is passed by reference
       req.file.data = convertedBuffer
-      req.file.mimetype = FORMAT_MIME_MAP[targetFormat]
-      req.file.name = replaceExtension(req.file.name, FORMAT_EXTENSION_MAP[targetFormat])
+      req.file.mimetype = outputMime
+      req.file.name = replaceExtension(req.file.name, FORMAT_EXTENSION_MAP[outputFormat])
       req.file.size = info.size
     } catch (err) {
       // Graceful failure: log warning, leave original file unchanged
       req.payload.logger.warn(
-        `payload-img-convert: Failed to convert to ${targetFormat}. Keeping original. Error: ${err instanceof Error ? err.message : String(err)}`,
+        `payload-img-convert: Failed to process image (format: ${outputFormat}). Keeping original. Error: ${err instanceof Error ? err.message : String(err)}`,
       )
     }
   }

@@ -1,6 +1,8 @@
 import type { ImageFormat, ImageConverterConfig } from './types.js'
 
 export const FORMAT_SELECTOR_FIELD_NAME = 'convertFormat'
+export const RESIZE_MAX_WIDTH_FIELD_NAME = 'resizeMaxWidth'
+export const RESIZE_MAX_HEIGHT_FIELD_NAME = 'resizeMaxHeight'
 
 export const FORMAT_LABELS: Record<ImageFormat, string> = {
   webp: 'WebP',
@@ -25,12 +27,18 @@ export const FORMAT_EXTENSION_MAP: Record<ImageFormat, string> = {
 
 export const ALL_FORMATS: ImageFormat[] = ['webp', 'avif', 'png', 'jpeg']
 
+export const MIME_FORMAT_MAP: Record<string, ImageFormat> = Object.fromEntries(
+  Object.entries(FORMAT_MIME_MAP).map(([format, mime]) => [mime, format as ImageFormat]),
+) as Record<string, ImageFormat>
+
 export const DEFAULT_CONFIG: Required<Omit<ImageConverterConfig, 'collections' | 'formatOptions' | 'maxWidth' | 'maxHeight' | 'maxFileSize'>> &
   Pick<ImageConverterConfig, 'formatOptions' | 'maxWidth' | 'maxHeight' | 'maxFileSize'> = {
   defaultFormat: 'webp',
   quality: 80,
   enableFormatSelector: true,
+  enableResizeSelector: true,
   formats: ALL_FORMATS,
   disabled: false,
   formatOptions: undefined,
+  oversizeThreshold: 2500,
 }

@@ -8,6 +8,10 @@ Automatic image conversion and resizing for [Payload CMS](https://payloadcms.com
 
 ---
 
+**[Official Homepage](https://payload-img-convert-frontend.vercel.app/)** | **[GitHub Repository](https://github.com/stianlars1/payload-img-convert)**
+
+---
+
 ## Why?
 
 Payload 3 doesn't include built-in format conversion. Most sites need WebP or AVIF for performance, but manually converting every upload is tedious. This plugin handles it automatically — convert on upload, resize to fit constraints, and let editors pick the format from the admin UI.

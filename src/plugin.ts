@@ -28,11 +28,11 @@ export const imageConverterPlugin =
       // Add the format selector field + hidden originalFilesize field
       const fields = [...(collection.fields || [])]
       if (config.enableFormatSelector) {
-        fields.push(createFormatSelectorField(pluginConfig))
+        fields.push(createFormatSelectorField(config))
       }
       fields.push(createImageInfoBadgeField())
       if (config.enableResizeSelector) {
-        fields.push(...createResizeSelectorFields(pluginConfig))
+        fields.push(...createResizeSelectorFields(config))
       }
       fields.push({
         name: 'originalFilesize',
@@ -49,7 +49,7 @@ export const imageConverterPlugin =
       }
 
       // Add beforeOperation hook (prepend so conversion runs first)
-      const beforeOperationHook = createBeforeOperationHook(pluginConfig, collection.slug)
+      const beforeOperationHook = createBeforeOperationHook(config, collection.slug)
       const existingBeforeOperation = collection.hooks?.beforeOperation ?? []
 
       return {

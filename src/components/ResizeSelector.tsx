@@ -23,7 +23,7 @@ export const ResizeSelectorComponent: React.FC<ResizeSelectorProps> = ({
   oversizeThreshold = 2500,
 }) => {
   const { value: widthValue, setValue: setWidthValue } = useField<number | undefined>({ path })
-  const heightPath = heightFieldPath || path.replace('resizeMaxWidth', 'resizeMaxHeight')
+  const heightPath = heightFieldPath ?? path.replace('resizeMaxWidth', 'resizeMaxHeight')
   const { value: heightValue, setValue: setHeightValue } = useField<number | undefined>({
     path: heightPath,
   })
@@ -70,44 +70,44 @@ export const ResizeSelectorComponent: React.FC<ResizeSelectorProps> = ({
 
   return (
     <div style={{ marginBottom: '16px' }}>
-        {/* Oversize warning */}
-        {isOversized && (
-            <div
+      {/* Oversize warning */}
+      {isOversized && (
+        <div
+          style={{
+            padding: '8px 10px',
+            marginBottom: '8px',
+            borderRadius: '4px',
+            backgroundColor: 'var(--theme-warning-100, #fef3cd)',
+            border: '1px solid var(--theme-warning-200, #ffc107)',
+            fontSize: '12px',
+            color: 'var(--theme-warning-900, #664d03)',
+          }}
+        >
+          Image is {imageWidth}&times;{imageHeight}px — consider resizing for better web
+          performance.
+          {!widthValue && !heightValue && (
+            <>
+              {' '}
+              <button
+                type="button"
+                onClick={handleAutoFill}
                 style={{
-                    padding: '8px 10px',
-                    marginBottom: '8px',
-                    borderRadius: '4px',
-                    backgroundColor: 'var(--theme-warning-100, #fef3cd)',
-                    border: '1px solid var(--theme-warning-200, #ffc107)',
-                    fontSize: '12px',
-                    color: 'var(--theme-warning-900, #664d03)',
+                  border: 'none',
+                  background: 'none',
+                  color: 'inherit',
+                  textDecoration: 'underline',
+                  cursor: 'pointer',
+                  padding: 0,
+                  fontSize: 'inherit',
+                  fontFamily: 'inherit',
                 }}
-            >
-                Image is {imageWidth}&times;{imageHeight}px — consider resizing for better web
-                performance.
-                {!widthValue && !heightValue && (
-                    <>
-                        {' '}
-                        <button
-                            type="button"
-                            onClick={handleAutoFill}
-                            style={{
-                                border: 'none',
-                                background: 'none',
-                                color: 'inherit',
-                                textDecoration: 'underline',
-                                cursor: 'pointer',
-                                padding: 0,
-                                fontSize: 'inherit',
-                                fontFamily: 'inherit',
-                            }}
-                        >
-                            Auto-fill max width ({oversizeThreshold}px)
-                        </button>
-                    </>
-                )}
-            </div>
-        )}
+              >
+                Auto-fill max width ({oversizeThreshold}px)
+              </button>
+            </>
+          )}
+        </div>
+      )}
 
       {/* Collapsible header */}
       <button

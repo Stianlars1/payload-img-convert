@@ -1,5 +1,5 @@
 import type { CollectionBeforeOperationHook } from 'payload'
-import type { ImageConverterConfig, ImageFormat } from '../types.js'
+import type { ImageFormat, ResolvedConfig } from '../types.js'
 import {
   FORMAT_EXTENSION_MAP,
   FORMAT_MIME_MAP,
@@ -7,7 +7,6 @@ import {
   FORMAT_SELECTOR_FIELD_NAME,
   RESIZE_MAX_WIDTH_FIELD_NAME,
   RESIZE_MAX_HEIGHT_FIELD_NAME,
-  DEFAULT_CONFIG,
 } from '../defaults.js'
 
 const SKIP_MIMES = ['image/svg+xml', 'image/gif']
@@ -22,17 +21,42 @@ function replaceExtension(filename: string, newExt: string): string {
   return `${baseName}${newExt}`
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function convertImage(
+  sharp: (input: Buffer | ArrayBuffer) => any,
+  input: Buffer,
+  outputFormat: ImageFormat,
+  outputOptions: Record<string, unknown>,
+  resizeWidth?: number,
+  resizeHeight?: number,
+): Promise<{ data: Buffer; info: { size: number } }> {
+  let pipeline = sharp(input)
+
+  if (resizeWidth || resizeHeight) {
+    pipeline = pipeline.resize({
+      width: resizeWidth,
+      height: resizeHeight,
+      fit: 'inside',
+      withoutEnlargement: true,
+    })
+  }
+
+  return pipeline
+    .toFormat(outputFormat, outputOptions)
+    .toBuffer({ resolveWithObject: true })
+}
+
 export function createBeforeOperationHook(
-  pluginConfig: ImageConverterConfig,
+  config: ResolvedConfig,
   collectionSlug: string,
 ): CollectionBeforeOperationHook {
-  const config = { ...DEFAULT_CONFIG, ...pluginConfig }
-
   return async ({ operation, req, args }) => {
     if (operation !== 'create' && operation !== 'update') return
 
+    const data = args?.data
+    if (!data) return
+
     // Determine target format: UI selection takes priority, then default
-    const data = args?.data ?? (args as Record<string, unknown>)
     const selectedFormat = data?.[FORMAT_SELECTOR_FIELD_NAME] as ImageFormat | undefined
     const targetFormat: ImageFormat = selectedFormat || config.defaultFormat
 
@@ -83,6 +107,14 @@ export function createBeforeOperationHook(
       const needsResize = resizeWidth || resizeHeight
       if (!currentMime || (!needsFormatChange && !needsResize)) return
 
+      // Max file size check before fetching (avoid wasted bandwidth)
+      if (config.maxFileSize && existingDoc.filesize && (existingDoc.filesize as number) > config.maxFileSize) {
+        req.payload.logger.warn(
+          `payload-img-convert: Existing file size (${existingDoc.filesize} bytes) exceeds maxFileSize (${config.maxFileSize} bytes). Skipping re-conversion.`,
+        )
+        return
+      }
+
       // Fetch the existing file from storage
       const fileUrl = existingDoc.url as string | undefined
       if (!fileUrl) return
@@ -122,32 +154,13 @@ export function createBeforeOperationHook(
         }
         const buffer = Buffer.from(await response.arrayBuffer())
 
-        // Max file size check for re-conversion
-        if (config.maxFileSize && buffer.length > config.maxFileSize) {
-          req.payload.logger.warn(
-            `payload-img-convert: Existing file size (${buffer.length} bytes) exceeds maxFileSize (${config.maxFileSize} bytes). Skipping re-conversion.`,
-          )
-          return
-        }
-
-        // Record the original file size before conversion
         const originalSize = buffer.length
+        const { data: convertedBuffer, info } = await convertImage(
+          sharp, buffer, outputFormat, outputOptions, resizeWidth, resizeHeight,
+        )
+
+        // Only set originalFilesize after successful conversion
         data.originalFilesize = originalSize
-
-        let pipeline = sharp(buffer)
-
-        if (resizeWidth || resizeHeight) {
-          pipeline = pipeline.resize({
-            width: resizeWidth,
-            height: resizeHeight,
-            fit: 'inside',
-            withoutEnlargement: true,
-          })
-        }
-
-        const { data: convertedBuffer, info } = await pipeline
-          .toFormat(outputFormat, outputOptions)
-          .toBuffer({ resolveWithObject: true })
 
         // Set req.file — Payload will process this as a new upload
         req.file = {
@@ -180,24 +193,13 @@ export function createBeforeOperationHook(
     const outputMime = FORMAT_MIME_MAP[outputFormat]
 
     try {
-      // Record the original file size before conversion
       const originalSize = req.file.size
+      const { data: convertedBuffer, info } = await convertImage(
+        sharp, req.file.data, outputFormat, outputOptions, resizeWidth, resizeHeight,
+      )
+
+      // Only set originalFilesize after successful conversion
       data.originalFilesize = originalSize
-
-      let pipeline = sharp(req.file.data)
-
-      if (resizeWidth || resizeHeight) {
-        pipeline = pipeline.resize({
-          width: resizeWidth,
-          height: resizeHeight,
-          fit: 'inside',
-          withoutEnlargement: true,
-        })
-      }
-
-      const { data: convertedBuffer, info } = await pipeline
-        .toFormat(outputFormat, outputOptions)
-        .toBuffer({ resolveWithObject: true })
 
       // Mutate req.file in place — req is passed by reference
       req.file.data = convertedBuffer

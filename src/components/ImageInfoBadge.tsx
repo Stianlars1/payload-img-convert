@@ -2,26 +2,21 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useField } from '@payloadcms/ui'
+import { formatFileSize, FORMAT_MIME_MAP, FORMAT_LABELS } from '../defaults.js'
 
-const MIME_LABELS: Record<string, string> = {
-  'image/jpeg': 'JPEG',
-  'image/png': 'PNG',
-  'image/webp': 'WebP',
-  'image/avif': 'AVIF',
+const EXTRA_MIME_LABELS: Record<string, string> = {
   'image/gif': 'GIF',
   'image/svg+xml': 'SVG',
   'image/tiff': 'TIFF',
   'image/bmp': 'BMP',
 }
 
-function formatFileSize(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
-}
-
 function getFormatLabel(mimeType: string): string {
-  return MIME_LABELS[mimeType] ?? mimeType.replace('image/', '').toUpperCase()
+  // Check plugin-supported formats first, then extras, then fallback
+  for (const [format, mime] of Object.entries(FORMAT_MIME_MAP)) {
+    if (mime === mimeType) return FORMAT_LABELS[format as keyof typeof FORMAT_LABELS]
+  }
+  return EXTRA_MIME_LABELS[mimeType] ?? mimeType.replace('image/', '').toUpperCase()
 }
 
 interface ImageInfo {

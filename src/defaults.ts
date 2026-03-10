@@ -31,6 +31,12 @@ export const MIME_FORMAT_MAP: Record<string, ImageFormat> = Object.fromEntries(
   Object.entries(FORMAT_MIME_MAP).map(([format, mime]) => [mime, format as ImageFormat]),
 ) as Record<string, ImageFormat>
 
+export function formatFileSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+}
+
 export const DEFAULT_CONFIG: Required<Omit<ImageConverterConfig, 'collections' | 'formatOptions' | 'maxWidth' | 'maxHeight' | 'maxFileSize'>> &
   Pick<ImageConverterConfig, 'formatOptions' | 'maxWidth' | 'maxHeight' | 'maxFileSize'> = {
   defaultFormat: 'webp',

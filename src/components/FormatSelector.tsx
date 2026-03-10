@@ -2,15 +2,7 @@
 
 import { SelectInput, useField } from '@payloadcms/ui'
 import type { ImageFormat } from '../types.js'
-import { FORMAT_LABELS, FORMAT_MIME_MAP } from '../defaults.js'
-
-function formatBytes(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`
-  const kb = bytes / 1024
-  if (kb < 1024) return `${kb.toFixed(0)} KB`
-  const mb = kb / 1024
-  return `${mb.toFixed(1)} MB`
-}
+import { FORMAT_LABELS, FORMAT_MIME_MAP, formatFileSize } from '../defaults.js'
 
 interface FormatSelectorProps {
   field: {
@@ -67,7 +59,7 @@ export const FormatSelectorComponent: React.FC<FormatSelectorProps> = ({
       />
       {showSavings && (
         <p style={{ fontSize: '13px', color: 'var(--theme-success-500)', margin: '4px 0 0 0' }}>
-          Saved {savingsPercent}% ({formatBytes(originalFilesize)} → {formatBytes(filesize)})
+          Saved {savingsPercent}% ({formatFileSize(originalFilesize)} → {formatFileSize(filesize)})
         </p>
       )}
       {showQualityWarning && (

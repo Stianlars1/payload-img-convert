@@ -25,6 +25,10 @@ export interface FormatOptions {
   }
 }
 
+/** Resolved config after merging with defaults — all optional fields have values */
+export type ResolvedConfig = ImageConverterConfig &
+  Required<Omit<ImageConverterConfig, 'formatOptions' | 'maxWidth' | 'maxHeight' | 'maxFileSize'>>
+
 export interface ImageConverterConfig {
   /** Upload collections to target */
   collections: string[]

@@ -3,6 +3,8 @@ import type { ImageFormat, ImageConverterConfig } from './types.js'
 export const FORMAT_SELECTOR_FIELD_NAME = 'convertFormat'
 export const RESIZE_MAX_WIDTH_FIELD_NAME = 'resizeMaxWidth'
 export const RESIZE_MAX_HEIGHT_FIELD_NAME = 'resizeMaxHeight'
+export const IMG_CONVERT_PROCESSED_FIELD_NAME = 'imgConvertProcessed'
+export const IMG_CONVERT_REPROCESS_FIELD_NAME = 'imgConvertReprocess'
 
 export const FORMAT_LABELS: Record<ImageFormat, string> = {
   webp: 'WebP',

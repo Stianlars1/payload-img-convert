@@ -3,6 +3,7 @@
 import { SelectInput, useField } from '@payloadcms/ui'
 import type { ImageFormat } from '../types.js'
 import { FORMAT_LABELS, FORMAT_MIME_MAP, formatFileSize } from '../defaults.js'
+import { usePluginProcessingState } from './usePluginProcessingState.js'
 
 interface FormatSelectorProps {
   field: {
@@ -21,6 +22,7 @@ export const FormatSelectorComponent: React.FC<FormatSelectorProps> = ({
   defaultFormat,
 }) => {
   const { value, setValue } = useField<string>({ path })
+  const { isLocked } = usePluginProcessingState()
 
   const { value: filesize } = useField<number>({ path: 'filesize' })
   const { value: originalFilesize } = useField<number>({ path: 'originalFilesize' })
@@ -44,7 +46,7 @@ export const FormatSelectorComponent: React.FC<FormatSelectorProps> = ({
   const showQualityWarning = mimeType && selectedMime !== mimeType
 
   return (
-    <div>
+    <div style={isLocked ? { opacity: 0.7 } : undefined}>
       <SelectInput
         path={path}
         name={field.name}
@@ -56,7 +58,13 @@ export const FormatSelectorComponent: React.FC<FormatSelectorProps> = ({
           }
         }}
         options={options}
+        readOnly={isLocked}
       />
+      {isLocked && (
+        <p style={{ fontSize: '12px', color: 'var(--theme-elevation-500)', margin: '4px 0 0 0' }}>
+          Enable reprocessing above to change these settings for the stored image.
+        </p>
+      )}
       {showSavings && (
         <p style={{ fontSize: '13px', color: 'var(--theme-success-500)', margin: '4px 0 0 0' }}>
           Saved {savingsPercent}% ({formatFileSize(originalFilesize)} → {formatFileSize(filesize)})

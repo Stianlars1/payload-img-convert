@@ -39,7 +39,7 @@
     "type": "git",
     "url": "git+https://github.com/stianlars1/payload-img-convert.git"
   },
-  "homepage": "https://payload-img-convert-frontend.vercel.app/",
+  "homepage": "https://payload-img-convert.com",
   "bugs": {
     "url": "https://github.com/stianlars1/payload-img-convert/issues"
   },

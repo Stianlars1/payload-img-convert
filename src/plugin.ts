@@ -4,7 +4,11 @@ import { DEFAULT_CONFIG } from './defaults.js'
 import { createBeforeOperationHook } from './hooks/beforeOperation.js'
 import { createFormatSelectorField } from './fields/formatSelector.js'
 import { createImageInfoBadgeField } from './fields/imageInfoBadge.js'
+import { createReprocessToggleField } from './fields/reprocessToggle.js'
 import { createResizeSelectorFields } from './fields/resizeSelector.js'
+import {
+  IMG_CONVERT_PROCESSED_FIELD_NAME,
+} from './defaults.js'
 
 export const imageConverterPlugin =
   (pluginConfig: ImageConverterConfig): Plugin =>
@@ -27,16 +31,23 @@ export const imageConverterPlugin =
 
       // Add the format selector field + hidden originalFilesize field
       const fields = [...(collection.fields || [])]
+      fields.push(createImageInfoBadgeField())
+      fields.push(createReprocessToggleField())
       if (config.enableFormatSelector) {
         fields.push(createFormatSelectorField(config))
       }
-      fields.push(createImageInfoBadgeField())
       if (config.enableResizeSelector) {
         fields.push(...createResizeSelectorFields(config))
       }
       fields.push({
         name: 'originalFilesize',
         type: 'number',
+        admin: { hidden: true, readOnly: true },
+      })
+      fields.push({
+        name: IMG_CONVERT_PROCESSED_FIELD_NAME,
+        type: 'checkbox',
+        defaultValue: false,
         admin: { hidden: true, readOnly: true },
       })
 

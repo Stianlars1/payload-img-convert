@@ -23,7 +23,7 @@ Payload 3 doesn't include built-in format conversion. Most sites need WebP or AV
 - **Max file size gate** — skip conversion for oversized files
 - **Per-format quality options** — fine-tune Sharp settings per format
 - **Admin UI format selector** — dropdown in the upload sidebar
-- **Re-conversion support** — change format on existing uploads
+- **Guarded existing-image reprocessing** — existing assets stay untouched until editors explicitly re-enable one reprocess pass
 - **Graceful fallback** — if conversion fails, the original file is kept
 - **Zero config defaults** — works out of the box with sensible defaults
 
@@ -95,13 +95,21 @@ Each format accepts the corresponding [Sharp output options](https://sharp.pixel
 
 ## How It Works
 
-The plugin registers a `beforeOperation` hook on each targeted collection. When an image is uploaded (or re-converted), the hook:
+The plugin registers a `beforeOperation` hook on each targeted collection. When an image is uploaded, the hook:
 
 1. Reads the target format from the admin UI selector (or falls back to `defaultFormat`)
 2. Checks file size against `maxFileSize` (skips if exceeded)
 3. Resizes the image if `maxWidth` or `maxHeight` are set (aspect ratio preserved, no upscaling)
 4. Converts to the target format using Sharp with the configured quality/options
 5. Replaces the file data, MIME type, and extension on `req.file`
+
+For already-processed existing images, ordinary metadata saves do nothing. The stored file is only fetched and reprocessed when the editor explicitly enables reprocessing and changes format or resize settings for that save.
+
+Processed existing images are protected in the admin UI with:
+
+- A sidebar notice explaining that the file was already processed
+- A one-shot `Enable Reprocessing` checkbox
+- Locked format and resize controls until reprocessing is enabled
 
 SVGs and GIFs are always skipped. If conversion fails, the original file is kept unchanged.
 

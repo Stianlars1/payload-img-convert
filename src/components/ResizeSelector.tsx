@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useField, FieldLabel } from '@payloadcms/ui'
+import { usePluginProcessingState } from './usePluginProcessingState.js'
 
 interface ResizeSelectorProps {
   field: {
@@ -27,6 +28,7 @@ export const ResizeSelectorComponent: React.FC<ResizeSelectorProps> = ({
   const { value: heightValue, setValue: setHeightValue } = useField<number | undefined>({
     path: heightPath,
   })
+  const { isLocked } = usePluginProcessingState()
 
   // Read actual image dimensions from sibling fields
   const { value: imageWidth } = useField<number | undefined>({ path: 'width' })
@@ -69,7 +71,7 @@ export const ResizeSelectorComponent: React.FC<ResizeSelectorProps> = ({
   }
 
   return (
-    <div style={{ marginBottom: '16px' }}>
+    <div style={{ marginBottom: '16px', opacity: isLocked ? 0.7 : 1 }}>
       {/* Oversize warning */}
       {isOversized && (
         <div
@@ -161,6 +163,7 @@ export const ResizeSelectorComponent: React.FC<ResizeSelectorProps> = ({
             <input
               type="number"
               value={displayWidth}
+              disabled={isLocked}
               min={1}
               step={1}
               placeholder="No width limit"
@@ -181,6 +184,7 @@ export const ResizeSelectorComponent: React.FC<ResizeSelectorProps> = ({
             <input
               type="number"
               value={displayHeight}
+              disabled={isLocked}
               min={1}
               step={1}
               placeholder="No height limit"
@@ -203,7 +207,9 @@ export const ResizeSelectorComponent: React.FC<ResizeSelectorProps> = ({
               margin: '0',
             }}
           >
-            Aspect ratio preserved, no upscaling.
+            {isLocked
+              ? 'Enable reprocessing above to edit these settings for the stored image.'
+              : 'Aspect ratio preserved, no upscaling.'}
           </p>
         </div>
       )}

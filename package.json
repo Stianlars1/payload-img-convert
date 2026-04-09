@@ -1,6 +1,6 @@
 {
   "name": "payload-img-convert",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Payload CMS plugin that automatically converts and resizes uploaded images to WebP, AVIF, or other formats using Sharp",
   "type": "module",
   "main": "./dist/index.js",
